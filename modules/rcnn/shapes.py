@@ -41,7 +41,7 @@ class Circle(Shape):
 
         for i in range(oy,oy+h):
             for j in range(ox,ox+w):
-                if (cy-i)**2+(cx-j)**2 < r**2 and i < H and j < W:
+                if (cy-i)**2+(cx-j)**2 <= r**2 and i < H and j < W:
                     x[i,j,:] = self.rgb
 
 class Triangle(Shape):
@@ -59,7 +59,9 @@ class Triangle(Shape):
 
         for i,c in enumerate(self.rgb):
             for j in range(0,h):
-                x[oy+h-j, ox+j:ox+w-j,i] = c
+                width = int((h-j)*1.0/h*w)
+                d = int( (w-width)*1.0/2 )
+                x[oy+h-j, ox+d:ox+d+width,i] = c
 
 def get_random_shapes(n_min, n_max, H, W, shape_dist=[0.333,0.333,0.334]):
     n_shapes = np.random.randint(n_min,n_max)
@@ -79,13 +81,13 @@ def get_random_shapes(n_min, n_max, H, W, shape_dist=[0.333,0.333,0.334]):
             w = 0.99-ox
         if oy+h > 1:
             h = 0.99-oy
-            
+
         box = np.array([ox,oy,w,h])
 
         rgb = np.random.randint(255, size=3)
 
         typ = np.random.choice(types, p=shape_dist)
-        print(box,typ)
+
         if typ == 0:
             s = Square(box,rgb)
         elif typ == 1:
