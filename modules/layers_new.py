@@ -1,7 +1,8 @@
 import tensorflow as tf
+import numpy as np
 
-class Conv2D
-    def __init__(self,s, dims=[3,3], nfilters=32, strides=[1,1],
+class Conv2D:
+    def __init__(self,input_channels, dims=[3,3], nfilters=32, strides=[1,1],
            init=1e-3, padding='SAME', activation=tf.identity, scope='conv2d', reuse=False):
         """
         args:
@@ -24,12 +25,12 @@ class Conv2D
         self.padding    = padding
         self.scope      = scope
         self.activation = activation
-
+        self.strides    = strides
         with tf.variable_scope(scope,reuse=reuse):
-            shape = dims +[s[3],nfilters]
+            shape = dims +[input_channels, nfilters]
 
             if init=='xavier':
-                init = np.sqrt(1.0/(dims[0]*dims[1]*s[3]))
+                init = np.sqrt(1.0/(dims[0]*dims[1]*input_channels))
 
             self.W = tf.Variable(tf.random_normal(shape=shape,stddev=init),
                 name='W')
@@ -37,7 +38,7 @@ class Conv2D
 
     def __call__(self, x):
         with tf.variable_scope(self.scope, reuse=False):
-            o = tf.nn.convolution(x, self.W, padding, strides=strides)
+            o = tf.nn.convolution(x, self.W, self.padding, strides=self.strides)
 
             o = o+self.b
 
@@ -45,8 +46,8 @@ class Conv2D
 
         return a
 
-class FullyConnected
-    def __init__(self,s,output_units=100,activation=tf.identity,std=1e-3,
+class FullyConnected:
+    def __init__(self,input_units,output_units=100,activation=tf.identity,std=1e-3,
                       scope='fc',reuse=False):
         """
         args:
@@ -65,7 +66,7 @@ class FullyConnected
         self.scope      = scope
         self.activation = activation
         with tf.variable_scope(scope,reuse=reuse):
-            shape = [s[1],output_units]
+            shape = [input_units,output_units]
 
             if std=='xavier':
                 std = np.sqrt(1.0/(shape[0]))
