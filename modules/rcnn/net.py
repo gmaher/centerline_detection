@@ -27,7 +27,7 @@ class Backbone(object):
         return o3
 
 class RPN(object):
-    def __init__(self, backbone, backbone_channels=64, window_size=20, hidden_size=256, num_boxes=10, scope='rpn'):
+    def __init__(self, backbone, backbone_channels=64, window_size=20, hidden_size=256, num_boxes=9, scope='rpn'):
         self.backbone       = backbone
         self.backbone_channels = backbone_channels
         self.window_size    = window_size
@@ -39,13 +39,13 @@ class RPN(object):
 
         with tf.variable_scope(scope):
             self.conv = layers.Conv2D(backbone_channels, dims=[window_size, window_size],
-                output_size=hidden_size, activation=self.act, scope='window_net')
+                nfilters=hidden_size, activation=self.act, scope='window_net')
 
             self.object_conv = layers.Conv2D(hidden_size, dims=[1, 1],
-                output_size=num_boxes, activation=tf.nn.sigmoid, scope='object_conv')
+                nfilters=num_boxes, activation=tf.nn.sigmoid, scope='object_conv')
 
-            self.obj_conv = layers.Conv2D(hidden_size, dims=[1, 1],
-                output_size=4*num_boxes, activation=tf.nn.sigmoid, scope='box_conv')
+            self.box_conv = layers.Conv2D(hidden_size, dims=[1, 1],
+                nfilters=4*num_boxes, activation=tf.nn.sigmoid, scope='box_conv')
 
     def __call__(self, x):
         o1 = self.backbone(x)
