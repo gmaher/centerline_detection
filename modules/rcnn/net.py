@@ -1,5 +1,7 @@
+import numpy as np
 import tensorflow as tf
 import modules.layers_new as layers
+from modules.rcnn.box import denormalize_boxes_tf
 
 class Backbone(object):
     def __init__(self, input_channels=3, output_size=64, scope='backbone'):
@@ -29,7 +31,7 @@ class Backbone(object):
 class RPN(object):
     def __init__(self, backbone, anchors, backbone_channels=64, window_size=20, hidden_size=256, scope='rpn'):
         '''
-        anchors - 4xk array
+        anchors - kx2 array
         '''
         self.backbone          = backbone
         self.backbone_channels = backbone_channels
@@ -37,7 +39,6 @@ class RPN(object):
         self.hidden_size       = hidden_size
         self.num_boxes         = anchors.shape[0]
         self.anchors           = anchors
-        self.anchors_tensor    = tf.constant(anchors, dtype=tf.float32)
         self.scope             = scope
 
         self.act = tf.contrib.keras.layers.LeakyReLU(0.2)
@@ -51,8 +52,6 @@ class RPN(object):
 
             self.box_conv = layers.Conv2D(hidden_size, dims=[1, 1],
                 nfilters=4*self.num_boxes, activation=tf.nn.sigmoid, scope='box_conv')
-
-            #anchor tensor?
 
     def __call__(self, x):
         o1 = self.backbone(x)
@@ -71,15 +70,22 @@ class RPN(object):
 
     def get_box_tensor(self, x):
         obj, box = self(x)
-        a = self.anchors_tensor
 
-        bx = box[:,:,:,:,0]*a[:,2]+a[:,0]
-        by = box[:,:,:,:,1]*a[:,3]+a[:,1]
+        #construct anchor tensor
+        s = x.get_shape().as_list()
+        anchors = np.zeros((1,s[1],s[2],self.num_boxes,4))
+        for i in range(s[1]):
+            for j in range(s[2]):
+                for k in range(self.num_boxes):
+                    anchors[0,j,i,:,0] = j
+                    anchors[0,j,i,:,1] = i
 
-        bw = tf.exp(box[:,:,:,:,2])*a[:,2]
-        bh = tf.exp(box[:,:,:,:,3])*a[:,3]
+                    anchors[0,j,i,:,2] = self.anchors[:,0]
+                    anchors[0,j,i,:,3] = self.anchors[:,1]
 
-        out_boxes = tf.stack([bx,by,bw,bh], axis=4)
+        anchors_tensor = tf.constant(anchors, dtype=tf.float32)
+
+        out_boxes = denormalize_boxes_tf(box,anchors_tensor)
         return out_boxes
 
 class RCNN(object):
