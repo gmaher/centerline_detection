@@ -1,39 +1,70 @@
-import tensorflow as tf
+import numpy as np
 
-def denormalize_boxes_tf(boxes, anchors):
-    bx = boxes[:,:,:,:,0]*anchors[:,:,:,:,2]+anchors[:,:,:,:,0]
-    by = boxes[:,:,:,:,1]*anchors[:,:,:,:,3]+anchors[:,:,:,:,1]
+def iou(bboxes1, bboxes2):
+        x1, y1, w1, h1 = np.split(bboxes1, 4, axis=1)
+        x2, y2, w2, h2 = np.split(bboxes2, 4, axis=1)
 
-    bw = tf.exp(boxes[:,:,:,:,2])*anchors[:,:,:,:,2]
-    bh = tf.exp(boxes[:,:,:,:,3])*anchors[:,:,:,:,3]
+        x11 = x1-w1/2
+        y11 = y1-h1/2
+        x12 = x1+w1/2
+        y12 = y1+h1/2
 
-    out_boxes = tf.stack([bx,by,bw,bh], axis=4)
+        x21 = x2-w2/2
+        y21 = y2-h2/2
+        x22 = x2+w2/2
+        y22 = y2+h2/2
 
-    return out_boxes
+        xA = np.maximum(x11, np.transpose(x21))
+        yA = np.maximum(y11, np.transpose(y21))
+        xB = np.minimum(x12, np.transpose(x22))
+        yB = np.minimum(y12, np.transpose(y22))
 
-def bbox_iou_center_xy(bboxes1, bboxes2):
-    """ same as `bbox_iou_corner_xy', except that we have
-        center_x, center_y, w, h instead of x1, y1, x2, y2 """
+        interArea = np.maximum((xB - xA), 0) * np.maximum((yB - yA), 0)
 
-    x11, y11, w11, h11 = tf.split(bboxes1, 4, axis=1)
-    x21, y21, w21, h21 = tf.split(bboxes2, 4, axis=1)
+        boxAArea = (x12 - x11) * (y12 - y11)
+        boxBArea = (x22 - x21) * (y22 - y21)
 
-    xi1 = tf.maximum(x11, tf.transpose(x21))
-    xi2 = tf.minimum(x11, tf.transpose(x21))
+        iou = interArea / (boxAArea + np.transpose(boxBArea) - interArea)
 
-    yi1 = tf.maximum(y11, tf.transpose(y21))
-    yi2 = tf.minimum(y11, tf.transpose(y21))
+        return iou
 
-    wi = w11/2.0 + tf.transpose(w21/2.0)
-    hi = h11/2.0 + tf.transpose(h21/2.0)
+def bbox_transform(anchors, boxes):
+    '''
+    note must be same scale
+    '''
+    N = boxes.shape[0]
+    t = np.zeros((N,4))
 
-    inter_area = tf.maximum(wi - (xi1 - xi2 + 1), 0) \
-                  * tf.maximum(hi - (yi1 - yi2 + 1), 0)
+    t[:,0] = (boxes[:,0]-anchors[:,0])/anchors[:,2]
+    t[:,1] = (boxes[:,1]-anchors[:,1])/anchors[:,3]
+    t[:,2] = np.log(boxes[:,2]/anchors[:,2])
+    t[:,3] = np.log(boxes[:,3]/anchors[:,3])
 
-    bboxes1_area = w11 * h11
-    bboxes2_area = w21 * h21
+    return t
 
-    union = (bboxes1_area + tf.transpose(bboxes2_area)) - inter_area
+def inv_bbox_transform(anchors, boxes):
+    '''
+    note must be same scale
+    '''
+    N = boxes.shape[0]
+    t = np.zeros((N,4))
 
-    #return inter_area / (union+0.0001)
-    return xi1
+    t[:,0] = anchors[:,2]*boxes[:,0]+anchors[:,0]
+    t[:,1] = anchors[:,3]*boxes[:,1]+anchors[:,1]
+    t[:,2] = np.exp(boxes[:,2])*anchors[:,2]
+    t[:,3] = np.exp(boxes[:,3])*anchors[:,3]
+
+    return t
+
+def create_box_gt(anchors, gt):
+    '''
+    anchors - Nanchors x 4
+    gt - Ntruth x 4
+
+    compute iou
+     > 0.7 iou then assign class label 1 and weight 1
+     < 0.3 iou then assign class label 0 and weight 1
+     otherwise weight 0
+
+     returns matched_boxes, labels, weights (Nanchors x 4)
+    '''
