@@ -67,4 +67,30 @@ def create_box_gt(anchors, gt):
      otherwise weight 0
 
      returns matched_boxes, labels, weights (Nanchors x 4)
+
+     label - true if any anchor > 0.7
     '''
+
+    #First calculate IOUs, then set weights of outside boxes to 0
+    # or with IOU too small to 0
+    n_anchors = anchors.shape[0]
+    weights   = np.zeros((n_anchors))
+    labels    = np.zeros((n_anchors))
+
+    ious = iou(anchors, gt)
+
+    max_inds = np.argmax(ious, axis=0)
+    max_ious = np.amax(ious,axis=1)
+
+
+    labels[max_inds] = 1
+    labels[max_ious>0.7] = 1
+    weights += 1
+    weights[(labels != 1) & (max_ious > 0.3) & (max_ious < 0.7)] = 0
+
+    max_inds = np.argmax(ious, axis=1)
+    matched_boxes = gt[max_inds]
+
+    t = bbox_transform(anchors,matched_boxes)
+
+    return t,matched_boxes, labels, weights
