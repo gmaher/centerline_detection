@@ -93,4 +93,4 @@ def create_box_gt(anchors, gt):
 
     t = bbox_transform(anchors,matched_boxes)
 
-    return t,matched_boxes, labels, weights
+    return t, matched_boxes, labels, weights

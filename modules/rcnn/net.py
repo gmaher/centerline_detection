@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 import modules.layers_new as layers
-from modules.rcnn.box import denormalize_boxes_tf
 
 class Backbone(object):
     def __init__(self, input_channels=3, output_size=64, scope='backbone'):

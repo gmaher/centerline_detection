@@ -8,6 +8,15 @@ class Shape(object):
     def paint(self, x, H, W):
         raise RuntimeError("abstract not implemented")
 
+    def to_gt(self):
+        label = 0
+        if self.__class__ == Circle:
+            label = 1
+        if self.__class__ == Triangle:
+            label = 2
+
+        return self.box,label
+
 class Square(Shape):
     shape_type = 0
     def paint(self, x, W, H):
@@ -99,3 +108,16 @@ def get_random_shapes(n_min, n_max, H, W, shape_dist=[0.333,0.333,0.334]):
         s.paint(x, W, H)
 
     return x,shapes
+
+def shapes_to_gt(shapes):
+    n = len(shapes)
+
+    boxes = np.zeros((n,4))
+    labels = np.zeros((n))
+
+    for i in range(n):
+        t = shapes[i].to_gt()
+        boxes[i]  = t[0]
+        labels[i] = t[1]
+
+    return boxes,labels
