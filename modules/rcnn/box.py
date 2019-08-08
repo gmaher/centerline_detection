@@ -80,11 +80,14 @@ def create_box_gt(anchors, gt):
     ious = iou(anchors, gt)
 
     max_inds = np.argmax(ious, axis=0)
+    print(max_inds)
     max_ious = np.amax(ious,axis=1)
 
 
     labels[max_inds] = 1
+
     labels[max_ious>0.7] = 1
+
     weights += 1
     weights[(labels != 1) & (max_ious > 0.3) & (max_ious < 0.7)] = 0
 
