@@ -46,7 +46,7 @@ class RPN(object):
                 nfilters=hidden_size, activation=self.act, scope='window_net')
 
             self.object_conv = layers.Conv2D(hidden_size, dims=[1, 1],
-                nfilters=self.num_boxes, activation=tf.nn.sigmoid, scope='object_conv')
+                nfilters=self.num_boxes, activation=tf.identity, scope='object_conv')
 
             self.box_conv = layers.Conv2D(hidden_size, dims=[1, 1],
                 nfilters=4*self.num_boxes, activation=tf.nn.sigmoid, scope='box_conv')
@@ -55,7 +55,8 @@ class RPN(object):
         o1 = self.backbone(x)
         o2 = self.conv(o1)
 
-        obj = self.object_conv(o2)
+        obj_logits = self.object_conv(o2)
+        obj = tf.nn.sigmoid(obj_logits)
         box = self.box_conv(o2)
 
         s = box.get_shape().as_list()
@@ -64,7 +65,7 @@ class RPN(object):
 
         box = tf.reshape(box, shape=shape)
 
-        return obj, box
+        return obj_logits, obj, box
 
 class RCNN(object):
     def __init__(self):
