@@ -28,7 +28,7 @@ class Backbone(object):
         return o3
 
 class RPN(object):
-    def __init__(self, backbone, anchors, backbone_channels=64, window_size=20, hidden_size=256, scope='rpn'):
+    def __init__(self, backbone, num_boxes, backbone_channels=64, window_size=20, hidden_size=256, scope='rpn'):
         '''
         anchors - kx2 array
         '''
@@ -36,8 +36,7 @@ class RPN(object):
         self.backbone_channels = backbone_channels
         self.window_size       = window_size
         self.hidden_size       = hidden_size
-        self.num_boxes         = anchors.shape[0]
-        self.anchors           = anchors
+        self.num_boxes         = num_boxes
         self.scope             = scope
 
         self.act = tf.contrib.keras.layers.LeakyReLU(0.2)
@@ -66,26 +65,6 @@ class RPN(object):
         box = tf.reshape(box, shape=shape)
 
         return obj, box
-
-    def get_box_tensor(self, x):
-        obj, box = self(x)
-
-        #construct anchor tensor
-        s = x.get_shape().as_list()
-        anchors = np.zeros((1,s[1],s[2],self.num_boxes,4))
-        for i in range(s[1]):
-            for j in range(s[2]):
-                for k in range(self.num_boxes):
-                    anchors[0,j,i,:,0] = j
-                    anchors[0,j,i,:,1] = i
-
-                    anchors[0,j,i,:,2] = self.anchors[:,0]
-                    anchors[0,j,i,:,3] = self.anchors[:,1]
-
-        anchors_tensor = tf.constant(anchors, dtype=tf.float32)
-
-        out_boxes = denormalize_boxes_tf(box,anchors_tensor)
-        return out_boxes
 
 class RCNN(object):
     def __init__(self):
