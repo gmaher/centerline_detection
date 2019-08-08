@@ -80,7 +80,7 @@ def create_box_gt(anchors, gt):
     ious = iou(anchors, gt)
 
     max_inds = np.argmax(ious, axis=0)
-    print(max_inds)
+
     max_ious = np.amax(ious,axis=1)
 
 
