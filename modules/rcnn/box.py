@@ -84,7 +84,7 @@ def create_box_gt(anchors, gt):
     max_ious = np.amax(ious,axis=1)
 
 
-    labels[max_inds] = 1
+    #labels[max_inds] = 1
 
     labels[max_ious>0.7] = 1
 

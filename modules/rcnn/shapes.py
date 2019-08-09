@@ -107,6 +107,8 @@ def get_random_shapes(n_min, n_max, H, W, shape_dist=[0.333,0.333,0.334]):
         shapes.append(s)
         s.paint(x, W, H)
 
+    x = np.amax(x,axis=2)
+    x[x>0] = 1.0
     return x,shapes
 
 def shapes_to_gt(shapes):
