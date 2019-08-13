@@ -23,8 +23,8 @@ class Square(Shape):
         ox = int(self.box[0]*(W-1))
         oy = int(self.box[1]*(H-1))
 
-        w = int(self.box[2]*(W-1))
-        h = int(self.box[3]*(H-1))
+        w = int(self.box[2]*W)
+        h = int(self.box[3]*H)
 
         for i,c in enumerate(self.rgb):
             x[oy:oy+h,ox:ox+w,i] = c
@@ -40,8 +40,8 @@ class Circle(Shape):
         ox = int(self.box[0]*(W-1))
         oy = int(self.box[1]*(H-1))
 
-        w = int(self.box[2]*(W-1))
-        h = int(self.box[3]*(H-1))
+        w = int(self.box[2]*W)
+        h = int(self.box[3]*H)
 
         r = h/2
 
@@ -50,7 +50,7 @@ class Circle(Shape):
 
         for i in range(oy,oy+h):
             for j in range(ox,ox+w):
-                if (cy-i)**2+(cx-j)**2 <= r**2 and i < H and j < W:
+                if (cy-i)**2+(cx-j)**2 <= r**2+1 and i < H and j < W:
                     x[i,j,:] = self.rgb
 
 class Triangle(Shape):
@@ -63,14 +63,14 @@ class Triangle(Shape):
         ox = int(self.box[0]*(W-1))
         oy = int(self.box[1]*(H-1))
 
-        w = int(self.box[2]*(W-1))
-        h = int(self.box[3]*(H-1))
+        w = int(self.box[2]*W)
+        h = int(self.box[3]*H)
 
         for i,c in enumerate(self.rgb):
             for j in range(0,h):
                 width = int((h-j)*1.0/h*w)
                 d = int( (w-width)*1.0/2 )
-                x[oy+h-j, ox+d:ox+d+width,i] = c
+                x[oy+h-j-1, ox+d:ox+d+width,i] = c
 
 def get_random_shapes(n_min, n_max, H, W, shape_dist=[0.333,0.333,0.334]):
     n_shapes = np.random.randint(n_min,n_max)

@@ -86,10 +86,10 @@ def create_box_gt(anchors, gt):
 
     #labels[max_inds] = 1
 
-    labels[max_ious>0.5] = 1
+    labels[max_ious>0.6] = 1
 
     weights += 1
-    weights[(labels != 1) & (max_ious > 0.3) & (max_ious < 0.5)] = 0
+    weights[(labels != 1) & (max_ious > 0.3) & (max_ious < 0.6)] = 0
 
     max_inds = np.argmax(ious, axis=1)
     matched_boxes = gt[max_inds]
