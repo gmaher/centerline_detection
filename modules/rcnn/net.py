@@ -49,7 +49,7 @@ class RPN(object):
                 nfilters=self.num_boxes, activation=tf.identity, scope='object_conv')
 
             self.box_conv = layers.Conv2D(hidden_size, dims=[1, 1],
-                nfilters=4*self.num_boxes, activation=tf.identity, scope='box_conv')
+                nfilters=4*self.num_boxes, activation=tf.tanh, scope='box_conv')
 
     def __call__(self, x):
         o1 = self.backbone(x)
