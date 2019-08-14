@@ -43,7 +43,7 @@ class RPN(object):
 
         with tf.variable_scope(scope):
             self.conv = layers.Conv2D(backbone_channels, dims=[window_size, window_size],
-                nfilters=hidden_size, activation=self.act, scope='window_net')
+                nfilters=hidden_size, activation=self.act, scope='window_conv')
 
             self.object_conv = layers.Conv2D(hidden_size, dims=[1, 1],
                 nfilters=self.num_boxes, activation=tf.identity, scope='object_conv')
@@ -68,10 +68,31 @@ class RPN(object):
         return obj_logits, obj, box
 
 class RCNN(object):
-    def __init__(self):
-        pass
+    def __init__(self, backbone, rpn, anchors, backbone_channels=64, window_size=10,
+        hidden_size=256, num_classes=3, obj_threshold=0.8, scope='rcnn'):
+        self.backbone          = backbone
+        self.rpn               = rpn
+        self.backbone_channels = backbone_channels
+        self.scope             = scope
+        self.anchors           = anchors
+        self.num_classes       = num_classes
+        self.anchor_tensor     = tf.convert_to_tensor(anchors)
+
+        self.act = tf.contrib.keras.layers.LeakyReLU(0.2)
+
+        with tf.variable_scope(scope):
+            self.conv = layers.Conv2D(backbone_channels, dims=[window_size, window_size],
+                nfilters=hidden_size, activation=self.act, scope='window_conv')
+
+            self.object_conv = layers.Conv2D(hidden_size, dims=[1, 1],
+                nfilters=self.num_classes, activation=tf.identity, scope='class_conv')
+
+            self.box_conv = layers.Conv2D(hidden_size, dims=[1, 1],
+                nfilters=4*self.num_classes, activation=tf.tanh, scope='box_conv')
+
     def __call__(self, x):
-        pass
+        conv_features                    = self.backbone(x)
+        logits, obj_class, box_proposals = self.rpn(x)
 
 class MaskNN(object):
     def __init__(self):
