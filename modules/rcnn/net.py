@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import modules.layers_new as layers
+import modules.rcnn.box as box_module
 
 class Backbone(object):
     def __init__(self, input_channels=3, output_size=64, scope='backbone'):
@@ -69,14 +70,16 @@ class RPN(object):
 
 class RCNN(object):
     def __init__(self, backbone, rpn, anchors, backbone_channels=64, window_size=10,
-        hidden_size=256, num_classes=3, obj_threshold=0.8, scope='rcnn'):
+        hidden_size=256, num_classes=3, obj_threshold=0.8, crop_size=30, scope='rcnn'):
         self.backbone          = backbone
         self.rpn               = rpn
         self.backbone_channels = backbone_channels
         self.scope             = scope
         self.anchors           = anchors
         self.num_classes       = num_classes
-        self.anchor_tensor     = tf.convert_to_tensor(anchors)
+        self.obj_threshold     = obj_threshold
+        self.crop_size         = crop_size
+        self.anchor_tensor     = tf.convert_to_tensor(anchors, dtype=tf.float32)
 
         self.act = tf.contrib.keras.layers.LeakyReLU(0.2)
 
@@ -94,12 +97,25 @@ class RCNN(object):
         conv_features                    = self.backbone(x)
         logits, obj_class, box_proposals = self.rpn(x)
 
-class MaskNN(object):
-    def __init__(self):
-        pass
-    def __call__(self, x):
-        pass
+        list_box = tf.reshape(box_proposals, shape=[-1,4])
+        list_obj = tf.reshape(obj_class, shape=[-1])
+        list_anchors = tf.reshape(self.anchor_tensor, shape=[-1,4])
 
-class Net(object):
-    def __init__(self, input_dims, hidden_size):
-        pass
+        list_real_box = box_module.inv_bbox_transform_tf(list_anchors, list_box)
+
+        selected = tf.math.greater_equal(list_obj, self.obj_threshold)
+
+        sel_real_box = tf.boolean_mask(list_real_box, selected)
+
+        nboxes = tf.reduce_sum(tf.to_int32(selected))
+
+        box_ind = tf.zeros(shape=[nboxes], dtype=tf.int32)
+
+        crop_conv = tf.image.crop_and_resize(x,
+            sel_real_box, box_ind=box_ind, crop_size=[self.crop_size]*2)
+
+        o1         = self.conv(crop_conv)
+        classes    = self.object_conv(o1)
+        box_adjust = self.box_conv(o1)
+
+        return crop_conv

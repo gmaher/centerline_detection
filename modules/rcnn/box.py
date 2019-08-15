@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 def iou(bboxes1, bboxes2):
         x1, y1, w1, h1 = np.split(bboxes1, 4, axis=1)
@@ -55,6 +56,18 @@ def inv_bbox_transform(anchors, boxes):
     t[:,3] = np.exp(boxes[:,3])*anchors[:,3]
 
     return t
+
+def inv_bbox_transform_tf(anchors, boxes):
+    '''
+    note must be same scale
+    '''
+
+    tx = anchors[:,2]*boxes[:,0]+anchors[:,0]
+    ty = anchors[:,3]*boxes[:,1]+anchors[:,1]
+    tw = tf.exp(boxes[:,2])*anchors[:,2]
+    th = tf.exp(boxes[:,3])*anchors[:,3]
+
+    return tf.stack([tx,ty,tw,th], axis=1)
 
 def create_box_gt(anchors, gt):
     '''
