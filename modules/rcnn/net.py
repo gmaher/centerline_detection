@@ -107,15 +107,27 @@ class RCNN(object):
 
         sel_real_box = tf.boolean_mask(list_real_box, selected)
 
+        sel_real_box_xy = box_module.xywh_to_xyxy_tf(sel_real_box)
+
+        sel_real_box_xy_rot = tf.stack(
+            [
+             sel_real_box_xy[:,1],
+             sel_real_box_xy[:,0],
+             sel_real_box_xy[:,3],
+             sel_real_box_xy[:,2]
+            ],
+            axis=1
+        )
+
         nboxes = tf.reduce_sum(tf.to_int32(selected))
 
         box_ind = tf.zeros(shape=[nboxes], dtype=tf.int32)
 
         crop_conv = tf.image.crop_and_resize(x,
-            sel_real_box, box_ind=box_ind, crop_size=[self.crop_size]*2)
+            sel_real_box_xy_rot, box_ind=box_ind, crop_size=[self.crop_size]*2)
 
         o1         = self.conv(crop_conv)
         classes    = self.object_conv(o1)
         box_adjust = self.box_conv(o1)
 
-        return crop_conv
+        return crop_conv, sel_real_box
