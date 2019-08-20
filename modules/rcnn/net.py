@@ -113,8 +113,8 @@ class RCNN(object):
             [
              sel_real_box_xy[:,1],
              sel_real_box_xy[:,0],
-             sel_real_box_xy[:,3],
-             sel_real_box_xy[:,2]
+             sel_real_box_xy[:,1]+sel_real_box_xy[:,3],
+             sel_real_box_xy[:,0]+sel_real_box_xy[:,2]
             ],
             axis=1
         )
@@ -130,4 +130,4 @@ class RCNN(object):
         classes    = self.object_conv(o1)
         box_adjust = self.box_conv(o1)
 
-        return crop_conv, sel_real_box
+        return crop_conv, sel_real_box, sel_real_box_xy_rot
