@@ -69,6 +69,15 @@ def inv_bbox_transform_tf(anchors, boxes):
 
     return tf.stack([tx,ty,tw,th], axis=1)
 
+def xywh_to_xyxy_tf(boxes):
+
+    x1 = boxes[:,0]
+    y1 = boxes[:,1]
+    x2 = boxes[:,2]
+    y2 = boxes[:,3]
+
+    return tf.stack([x1,y1,x2,y2], axis=1)
+
 def create_box_gt(anchors, gt):
     '''
     anchors - Nanchors x 4
@@ -99,10 +108,10 @@ def create_box_gt(anchors, gt):
 
     #labels[max_inds] = 1
 
-    labels[max_ious>0.6] = 1
+    labels[max_ious>0.65] = 1
 
     weights += 1
-    weights[(labels != 1) & (max_ious > 0.3) & (max_ious < 0.6)] = 0
+    weights[(labels != 1) & (max_ious > 0.3) & (max_ious < 0.65)] = 0
 
     max_inds = np.argmax(ious, axis=1)
     matched_boxes = gt[max_inds]

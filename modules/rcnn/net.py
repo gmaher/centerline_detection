@@ -87,11 +87,15 @@ class RCNN(object):
             self.conv = layers.Conv2D(backbone_channels, dims=[window_size, window_size],
                 nfilters=hidden_size, activation=self.act, scope='window_conv')
 
-            self.object_conv = layers.Conv2D(hidden_size, dims=[1, 1],
-                nfilters=self.num_classes, activation=tf.identity, scope='class_conv')
+            inp = crop_size*crop_size*hidden_size
 
-            self.box_conv = layers.Conv2D(hidden_size, dims=[1, 1],
-                nfilters=4*self.num_classes, activation=tf.tanh, scope='box_conv')
+            self.object_fc = layers.FullyConnected(
+                input_units=inp, output_units=self.num_classes,
+                activation=tf.identity, scope='class_fc')
+
+            self.box_fc = layers.FullyConnected(
+                input_units=inp, output_units=4,
+                activation=tf.tanh, scope='box_fc')
 
     def __call__(self, x):
         conv_features                    = self.backbone(x)
@@ -107,15 +111,32 @@ class RCNN(object):
 
         sel_real_box = tf.boolean_mask(list_real_box, selected)
 
+        sel_real_box_xy = box_module.xywh_to_xyxy_tf(sel_real_box)
+
+        sel_real_box_xy_rot = tf.stack(
+            [
+             sel_real_box_xy[:,1],
+             sel_real_box_xy[:,0],
+             sel_real_box_xy[:,1]+sel_real_box_xy[:,3],
+             sel_real_box_xy[:,0]+sel_real_box_xy[:,2]
+            ],
+            axis=1
+        )
+
         nboxes = tf.reduce_sum(tf.to_int32(selected))
 
         box_ind = tf.zeros(shape=[nboxes], dtype=tf.int32)
 
         crop_conv = tf.image.crop_and_resize(x,
-            sel_real_box, box_ind=box_ind, crop_size=[self.crop_size]*2)
+            sel_real_box_xy_rot, box_ind=box_ind, crop_size=[self.crop_size]*2)
 
         o1         = self.conv(crop_conv)
-        classes    = self.object_conv(o1)
-        box_adjust = self.box_conv(o1)
+        o1_unroll  = tf.reshape(o1, shape=[nboxes,-1])
+        classes    = self.object_fc(o1_unroll)
+        box_adjust = self.box_fc(o1_unroll)
 
-        return crop_conv
+        self.selected   = selected
+        self.box_adjust = box_adjust
+        self.classes    = classes
+
+        return crop_conv, sel_real_box, sel_real_box_xy_rot
